@@ -1,12 +1,9 @@
-# main.py
-
 from fastapi import FastAPI
 from pydantic import BaseModel
 import spacy
 
-nlp = spacy.load("en_core_web_sm")
-
 app = FastAPI()
+nlp = spacy.load("en_core_web_sm")
 
 class TextRequest(BaseModel):
     text: str
@@ -14,9 +11,17 @@ class TextRequest(BaseModel):
 @app.post("/link-locations")
 def link_locations(req: TextRequest):
     doc = nlp(req.text)
-    result = req.text
-    # Replace locations with markdown hyperlinks
-    for ent in doc.ents:
-        if ent.label_ == "GPE":  # Geographic locations
-            result = result.replace(ent.text, f"[{ent.text}]()")
-    return {"linked_text": result}
+    ents = [ent for ent in doc.ents if ent.label_ == "GPE"]
+
+    # Sort by start index descending to avoid messing up offsets when replacing
+    ents = sorted(ents, key=lambda x: x.start_char, reverse=True)
+
+    text = req.text
+    for ent in ents:
+        start = ent.start_char
+        end = ent.end_char
+        mention = text[start:end]
+        # Only wrap the original text (not already-wrapped)
+        text = text[:start] + f"[{mention}]()" + text[end:]
+
+    return {"linked_text": text}
