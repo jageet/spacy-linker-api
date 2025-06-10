@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import spacy
 
 app = FastAPI()
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("en_core_web_md")
 
 class TextRequest(BaseModel):
     text: str
