@@ -10,18 +10,23 @@ class TextRequest(BaseModel):
 
 @app.post("/link-locations")
 def link_locations(req: TextRequest):
-    doc = nlp(req.text)
-    ents = [ent for ent in doc.ents if ent.label_ == "GPE"]
-
-    # Sort by start index descending to avoid messing up offsets when replacing
-    ents = sorted(ents, key=lambda x: x.start_char, reverse=True)
-
     text = req.text
-    for ent in ents:
-        start = ent.start_char
-        end = ent.end_char
-        mention = text[start:end]
-        # Only wrap the original text (not already-wrapped)
-        text = text[:start] + f"[{mention}]()" + text[end:]
+    doc = nlp(text)
+
+    # Only use GPE entities (e.g., cities, countries)
+    gpe_ents = [ent for ent in doc.ents if ent.label_ == "GPE"]
+
+    # Track already replaced spans to avoid nesting
+    spans_to_replace = []
+
+    for ent in gpe_ents:
+        spans_to_replace.append((ent.start_char, ent.end_char, ent.text))
+
+    # Sort by start position descending to avoid offset shifting
+    spans_to_replace.sort(reverse=True, key=lambda x: x[0])
+
+    for start, end, val in spans_to_replace:
+        # Replace only the original span
+        text = text[:start] + f"[{val}]()" + text[end:]
 
     return {"linked_text": text}
