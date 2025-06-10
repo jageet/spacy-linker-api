@@ -13,8 +13,8 @@ def link_locations(req: TextRequest):
     text = req.text
     doc = nlp(text)
 
-    # Only use GPE entities (e.g., cities, countries)
-    gpe_ents = [ent for ent in doc.ents if ent.label_ == "GPE"]
+    # Use both GPE and LOC
+    gpe_ents = [ent for ent in doc.ents if ent.label_ in {"GPE", "LOC"}]
 
     # Track already replaced spans to avoid nesting
     spans_to_replace = []
